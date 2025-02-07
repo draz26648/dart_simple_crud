@@ -1,11 +1,23 @@
 import 'dart:convert';
 import 'package:shelf/shelf.dart';
+import 'package:shelf_router/shelf_router.dart';
 import '../core/interfaces/i_user_service.dart';
+import '../models/user.dart';
 
 class UserController {
   final IUserService _userService;
+  final Router _router = Router();
 
-  UserController(this._userService);
+  UserController(this._userService) {
+    _router.get('/users', getAllUsers);
+    _router.get('/users/<id>', getUserById);
+    _router.post('/users', createUser);
+    _router.put('/users/<id>', updateUser);
+    _router.delete('/users/<id>', deleteUser);
+    _router.post('/users/<id>/profile-image', uploadProfileImage);
+  }
+
+  Router get router => _router;
 
   Future<Response> getAllUsers(Request request) async {
     try {
@@ -13,7 +25,7 @@ class UserController {
       return Response.ok(
         jsonEncode({
           'message': 'Users fetched successfully',
-          'users': users.map((user) => user.toJson()).toList(),
+          'users': users.map((user) => user.toResponseJson()).toList(),
         }),
         headers: {'Content-Type': 'application/json'},
       );
@@ -30,29 +42,25 @@ class UserController {
 
   Future<Response> getUserById(Request request, String id) async {
     try {
-      final userId = int.tryParse(id);
-      if (userId == null) {
-        return Response(
-          400,
-          body: jsonEncode({'error': 'Invalid user ID'}),
-          headers: {'Content-Type': 'application/json'},
-        );
-      }
-
+      final int userId = int.parse(id);
       final user = await _userService.getUserById(userId);
       if (user == null) {
         return Response.notFound(
-          jsonEncode({'error': 'User not found'}),
+          jsonEncode({
+            'error': 'User not found',
+            'details': 'No user found with ID: $id',
+          }),
           headers: {'Content-Type': 'application/json'},
         );
       }
 
       return Response.ok(
-        jsonEncode(user.toJson()),
+        jsonEncode(user.toResponseJson()),
         headers: {'Content-Type': 'application/json'},
       );
     } catch (e) {
-      return Response.internalServerError(
+      return Response(
+        400,
         body: jsonEncode({
           'error': 'Failed to get user',
           'details': e.toString(),
@@ -64,18 +72,10 @@ class UserController {
 
   Future<Response> createUser(Request request) async {
     try {
-      final body = await request.readAsString();
-      if (body.isEmpty) {
-        return Response(
-          400,
-          body: jsonEncode({'error': 'Request body is empty'}),
-          headers: {'Content-Type': 'application/json'},
-        );
-      }
-
-      Map<String, dynamic> userData;
+      final String body = await request.readAsString();
+      final Map<String, dynamic> userData;
       try {
-        userData = jsonDecode(body);
+        userData = jsonDecode(body) as Map<String, dynamic>;
       } catch (e) {
         return Response(
           400,
@@ -87,11 +87,11 @@ class UserController {
         );
       }
 
-      final newUser = await _userService.createUser(userData);
+      final newUser = await _userService.createUser(User.fromJson(userData));
       return Response.ok(
         jsonEncode({
           'message': 'User created successfully',
-          'user': newUser.toJson(),
+          'user': newUser.toResponseJson(),
         }),
         headers: {'Content-Type': 'application/json'},
       );
@@ -109,27 +109,11 @@ class UserController {
 
   Future<Response> updateUser(Request request, String id) async {
     try {
-      final userId = int.tryParse(id);
-      if (userId == null) {
-        return Response(
-          400,
-          body: jsonEncode({'error': 'Invalid user ID'}),
-          headers: {'Content-Type': 'application/json'},
-        );
-      }
-
-      final body = await request.readAsString();
-      if (body.isEmpty) {
-        return Response(
-          400,
-          body: jsonEncode({'error': 'Request body is empty'}),
-          headers: {'Content-Type': 'application/json'},
-        );
-      }
-
-      Map<String, dynamic> userData;
+      final int userId = int.parse(id);
+      final String body = await request.readAsString();
+      final Map<String, dynamic> userData;
       try {
-        userData = jsonDecode(body);
+        userData = jsonDecode(body) as Map<String, dynamic>;
       } catch (e) {
         return Response(
           400,
@@ -141,10 +125,13 @@ class UserController {
         );
       }
 
-      final updatedUser = await _userService.updateUser(userId, userData);
+      final updatedUser = await _userService.updateUser(userId, User.fromJson(userData));
       if (updatedUser == null) {
         return Response.notFound(
-          jsonEncode({'error': 'User not found'}),
+          jsonEncode({
+            'error': 'User not found',
+            'details': 'No user found with ID: $id',
+          }),
           headers: {'Content-Type': 'application/json'},
         );
       }
@@ -152,12 +139,13 @@ class UserController {
       return Response.ok(
         jsonEncode({
           'message': 'User updated successfully',
-          'user': updatedUser.toJson(),
+          'user': updatedUser.toResponseJson(),
         }),
         headers: {'Content-Type': 'application/json'},
       );
     } catch (e) {
-      return Response.internalServerError(
+      return Response(
+        400,
         body: jsonEncode({
           'error': 'Failed to update user',
           'details': e.toString(),
@@ -169,34 +157,62 @@ class UserController {
 
   Future<Response> deleteUser(Request request, String id) async {
     try {
-      final userId = int.tryParse(id);
-      if (userId == null) {
-        return Response(
-          400,
-          body: jsonEncode({'error': 'Invalid user ID'}),
+      final int userId = int.parse(id);
+      final deleted = await _userService.deleteUser(userId);
+      if (!deleted) {
+        return Response.notFound(
+          jsonEncode({
+            'error': 'User not found',
+            'details': 'No user found with ID: $id',
+          }),
           headers: {'Content-Type': 'application/json'},
         );
       }
 
-      final deleted = await _userService.deleteUser(userId);
-      if (!deleted) {
+      return Response.ok(
+        jsonEncode({'message': 'User deleted successfully'}),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e) {
+      return Response(
+        400,
+        body: jsonEncode({
+          'error': 'Failed to delete user',
+          'details': e.toString(),
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+  }
+
+  Future<Response> uploadProfileImage(Request request, String id) async {
+    try {
+      final int userId = int.parse(id);
+      final String filePath = await request.readAsString();
+
+      final updatedUser = await _userService.updateProfileImage(userId, filePath);
+      if (updatedUser == null) {
         return Response.notFound(
-          jsonEncode({'error': 'User not found'}),
+          jsonEncode({
+            'error': 'User not found',
+            'details': 'No user found with ID: $id',
+          }),
           headers: {'Content-Type': 'application/json'},
         );
       }
 
       return Response.ok(
         jsonEncode({
-          'message': 'User deleted successfully',
-          'userId': userId,
+          'message': 'Profile image updated successfully',
+          'user': updatedUser.toJson(),
         }),
         headers: {'Content-Type': 'application/json'},
       );
     } catch (e) {
-      return Response.internalServerError(
+      return Response(
+        400,
         body: jsonEncode({
-          'error': 'Failed to delete user',
+          'error': 'Failed to update profile image',
           'details': e.toString(),
         }),
         headers: {'Content-Type': 'application/json'},

@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
-import '../lib/core/di/service_locator.dart';
-import '../lib/config/server_config.dart';
-import '../lib/services/database_service.dart';
-import '../lib/routes/api_routes.dart';
-import '../lib/database/migrations/001_create_users_table.dart';
+import 'package:hello_world/core/di/service_locator.dart';
+import 'package:hello_world/config/server_config.dart';
+import 'package:hello_world/services/database_service.dart';
+import 'package:hello_world/routes/api_routes.dart';
+import 'package:hello_world/database/migrations/001_create_users_table.dart';
 
 void main() async {
   try {
@@ -45,7 +45,7 @@ void main() async {
             }
           },
         )
-        .addHandler(serviceLocator<ApiRoutes>().router);
+        .addHandler(serviceLocator<ApiRoutes>().router.call);
 
     // Start server
     print('Starting server...');

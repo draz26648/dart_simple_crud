@@ -1,54 +1,66 @@
-import '../models/user.dart';
 import '../core/interfaces/i_user_repository.dart';
+import '../core/interfaces/i_file_service.dart';
 import '../core/interfaces/i_user_service.dart';
+import '../models/user.dart';
 
 class UserService implements IUserService {
   final IUserRepository _userRepository;
+  final IFileService _fileService;
 
-  UserService(this._userRepository);
+  UserService(this._userRepository, this._fileService);
 
   @override
   Future<List<User>> getAllUsers() async {
-    return _userRepository.getAllUsers();
+    return await _userRepository.getAllUsers();
   }
 
   @override
   Future<User?> getUserById(int id) async {
-    return _userRepository.getUserById(id);
+    return await _userRepository.getUserById(id);
   }
 
   @override
-  Future<User> createUser(Map<String, dynamic> userData) async {
-    final user = User(
-      name: userData['name'] as String,
-      gender: userData['gender'] as String,
-      age: userData['age'] as int,
-      email: userData['email'] as String,
-      mobileNumber: userData['mobileNumber'] as String,
-    );
-
-    return _userRepository.createUser(user);
+  Future<User?> getUserByEmail(String email) async {
+    return await _userRepository.getUserByEmail(email);
   }
 
   @override
-  Future<User?> updateUser(int id, Map<String, dynamic> userData) async {
-    final existingUser = await getUserById(id);
-    if (existingUser == null) return null;
+  Future<User> createUser(User user) async {
+    return await _userRepository.createUser(user);
+  }
 
-    final user = User(
-      id: id,  
-      name: userData['name'] as String? ?? existingUser.name,
-      gender: userData['gender'] as String? ?? existingUser.gender,
-      age: userData['age'] as int? ?? existingUser.age,
-      email: userData['email'] as String? ?? existingUser.email,
-      mobileNumber: userData['mobileNumber'] as String? ?? existingUser.mobileNumber,
-    );
-
-    return _userRepository.updateUser(id, user);
+  @override
+  Future<User> updateUser(int id, User user) async {
+    final updatedUser = await _userRepository.updateUser(id, user);
+    if (updatedUser == null) {
+      throw Exception('User not found');
+    }
+    return updatedUser;
   }
 
   @override
   Future<bool> deleteUser(int id) async {
-    return _userRepository.deleteUser(id);
+    final user = await _userRepository.getUserById(id);
+    if (user == null) return false;
+
+    // Delete profile image if exists
+    if (user.profileImagePath != null) {
+      await _fileService.deleteProfileImage(user.profileImagePath);
+    }
+
+    return await _userRepository.deleteUser(id);
+  }
+
+  @override
+  Future<User?> updateProfileImage(int id, String filePath) async {
+    final user = await _userRepository.getUserById(id);
+    if (user == null) return null;
+
+    // Delete old profile image if exists
+    if (user.profileImagePath != null) {
+      await _fileService.deleteProfileImage(user.profileImagePath);
+    }
+
+    return await _userRepository.updateProfileImage(id, filePath);
   }
 }

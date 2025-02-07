@@ -9,107 +9,91 @@ class UserRepository implements IUserRepository {
 
   @override
   Future<List<User>> getAllUsers() async {
-    final results = await _connection.query(
-      'SELECT * FROM users',
+    final result = await _connection.query(
+      'SELECT * FROM users ORDER BY created_at DESC',
     );
-    
-    return results.map((row) => User(
-      id: row[0] as int,
-      name: row[1] as String,
-      gender: row[2] as String,
-      age: row[3] as int,
-      email: row[4] as String,
-      mobileNumber: row[5] as String,
-    )).toList();
+    return result.map((row) => User.fromJson(row.toColumnMap())).toList();
   }
 
   @override
   Future<User?> getUserById(int id) async {
-    final results = await _connection.query(
+    final result = await _connection.query(
       'SELECT * FROM users WHERE id = @id',
       substitutionValues: {'id': id},
     );
     
-    if (results.isEmpty) return null;
-    
-    final row = results.first;
-    return User(
-      id: row[0] as int,
-      name: row[1] as String,
-      gender: row[2] as String,
-      age: row[3] as int,
-      email: row[4] as String,
-      mobileNumber: row[5] as String,
+    if (result.isEmpty) return null;
+    return User.fromJson(result.first.toColumnMap());
+  }
+
+  @override
+  Future<User?> getUserByEmail(String email) async {
+    final result = await _connection.query(
+      'SELECT * FROM users WHERE email = @email',
+      substitutionValues: {'email': email},
     );
+    
+    if (result.isEmpty) return null;
+    return User.fromJson(result.first.toColumnMap());
   }
 
   @override
   Future<User> createUser(User user) async {
-    final results = await _connection.query(
-      '''
-      INSERT INTO users (name, gender, age, email, mobile_number)
-      VALUES (@name, @gender, @age, @email, @mobileNumber)
-      RETURNING *
-      ''',
+    final result = await _connection.query(
+      'INSERT INTO users (name, gender, age, email, mobile_number, profile_image_path, password) VALUES (@name, @gender, @age, @email, @mobile_number, @profile_image_path, @password) RETURNING *',
       substitutionValues: {
         'name': user.name,
         'gender': user.gender,
         'age': user.age,
         'email': user.email,
-        'mobileNumber': user.mobileNumber,
+        'mobile_number': user.mobileNumber,
+        'profile_image_path': user.profileImagePath,
+        'password': user.password,
       },
     );
-    
-    final row = results.first;
-    return User(
-      id: row[0] as int,
-      name: row[1] as String,
-      gender: row[2] as String,
-      age: row[3] as int,
-      email: row[4] as String,
-      mobileNumber: row[5] as String,
-    );
+
+    return User.fromJson(result.first.toColumnMap());
   }
 
   @override
-  Future<User?> updateUser(int id, User user) async {
-    final results = await _connection.query(
-      '''
-      UPDATE users 
-      SET name = @name, gender = @gender, age = @age, 
-          email = @email, mobile_number = @mobileNumber
-      WHERE id = @id
-      RETURNING *
-      ''',
+  Future<User> updateUser(int id, User user) async {
+    final result = await _connection.query(
+      'UPDATE users SET name = @name, gender = @gender, age = @age, email = @email, mobile_number = @mobile_number, profile_image_path = @profile_image_path, password = @password, updated_at = CURRENT_TIMESTAMP WHERE id = @id RETURNING *',
       substitutionValues: {
         'id': id,
         'name': user.name,
         'gender': user.gender,
         'age': user.age,
         'email': user.email,
-        'mobileNumber': user.mobileNumber,
+        'mobile_number': user.mobileNumber,
+        'profile_image_path': user.profileImagePath,
+        'password': user.password,
       },
     );
-    
-    if (results.isEmpty) return null;
-    
-    final row = results.first;
-    return User(
-      id: row[0] as int,
-      name: row[1] as String,
-      gender: row[2] as String,
-      age: row[3] as int,
-      email: row[4] as String,
-      mobileNumber: row[5] as String,
-    );
+
+    return User.fromJson(result.first.toColumnMap());
   }
 
   @override
   Future<bool> deleteUser(int id) async {
-    final results = await _connection.query(
-      'DELETE FROM users WHERE id = @id RETURNING id',
+    final result = await _connection.query(
+      'DELETE FROM users WHERE id = @id',
       substitutionValues: {'id': id},
     );
-    return results.isNotEmpty;
+    return result.isNotEmpty;
+  }
+
+  @override
+  Future<User?> updateProfileImage(int id, String filePath) async {
+    final result = await _connection.query(
+      'UPDATE users SET profile_image_path = @filePath WHERE id = @id RETURNING *',
+      substitutionValues: {
+        'id': id,
+        'filePath': filePath,
+      },
+    );
+    
+    if (result.isEmpty) return null;
+    return User.fromJson(result.first.toColumnMap());
   }
 }
