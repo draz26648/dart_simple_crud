@@ -30,7 +30,7 @@ class DatabaseService {
           username: DatabaseConfig.username,
           password: DatabaseConfig.password,
           timeoutInSeconds: 30,
-          useSSL: true,
+          useSSL: false,
         );
         
         await _connection.open();

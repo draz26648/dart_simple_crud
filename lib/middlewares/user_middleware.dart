@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shelf/shelf.dart';
 import '../core/interfaces/i_user_service.dart';
+import '../core/interfaces/i_auth_service.dart';
 import '../services/auth_service.dart';
 import '../core/di/service_locator.dart';
 
@@ -113,7 +114,7 @@ class UserMiddleware {
           }
 
           final token = authHeader.replaceFirst('Bearer ', '');
-          final authService = serviceLocator<AuthService>();
+          final authService = serviceLocator<IAuthService>();
           
           try {
             final userId = await authService.verifyToken(token);
