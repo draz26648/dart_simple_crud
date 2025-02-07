@@ -53,7 +53,22 @@ class AuthMiddleware {
             );
           }
 
-          return innerHandler(request);
+          if (!isStrongPassword(data['password'])) {
+            _incrementAttempts(clientIp);
+            return Response.badRequest(
+              body: json.encode({
+                'error': 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character',
+              }),
+              headers: {'content-type': 'application/json'},
+            );
+          }
+
+          // Create a new request with the validated body
+          final updatedRequest = request.change(
+            body: payload,
+          );
+
+          return innerHandler(updatedRequest);
         } catch (e) {
           print('Error in validateLoginData middleware: ${e.toString()}');
           return Response.badRequest(

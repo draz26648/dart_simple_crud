@@ -19,15 +19,6 @@ class AuthController {
         final payload = await request.readAsString();
         final Map<String, dynamic> body = json.decode(payload);
         
-        if (!body.containsKey('email') || !body.containsKey('password')) {
-          return Response(HttpStatus.badRequest,
-            body: json.encode({
-              'error': 'Email and password are required'
-            }),
-            headers: {'content-type': 'application/json'},
-          );
-        }
-
         final result = await _authService.login(
           body['email'] as String,
           body['password'] as String,
