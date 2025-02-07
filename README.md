@@ -183,6 +183,67 @@ lib/
 }
 ```
 
+## Design Patterns Used
+
+The project implements several design patterns to ensure maintainability, scalability, and clean architecture:
+
+1. **Dependency Injection (DI) Pattern**
+   - Uses `get_it` as a service locator
+   - Constructor-based dependency injection throughout classes
+   - Example: `UserService` receives `IUserRepository` and `IFileService` through constructor
+
+2. **Repository Pattern**
+   - Separates data access logic into dedicated repositories
+   - Abstracts database operations
+   - Example: `UserRepository` handles all user-related database operations
+
+3. **Interface Segregation (SOLID Principle)**
+   - Separate interfaces for different services
+   - Examples: `IUserService`, `IAuthService`, `IFileService`
+   - Ensures classes only depend on interfaces they use
+
+4. **Singleton Pattern**
+   - Used in `DatabaseService` to ensure single database connection
+   - Services registered as singletons in `service_locator`
+   - Manages shared resources efficiently
+
+5. **Middleware Pattern**
+   - Handles HTTP request processing pipeline
+   - Examples: `AuthMiddleware`, `UserMiddleware`, `FileMiddleware`
+   - Enables request/response transformation and validation
+
+6. **MVC-like Pattern**
+   - Models: Data structures in `models` directory
+   - Controllers: Request handlers in `controllers` directory
+   - Modified for API architecture without traditional views
+
+7. **Factory Pattern**
+   - Implemented through `service_locator`
+   - Centralizes object creation
+   - Manages dependencies and their lifecycle
+
+8. **Service Layer Pattern**
+   - Services contain business logic
+   - Separates controllers from repositories
+   - Promotes separation of concerns
+
+9. **Strategy Pattern**
+   - Implemented through interfaces
+   - Allows runtime implementation switching
+   - Enhances code flexibility and maintainability
+
+10. **Pipeline Pattern**
+    - Implements request processing through middleware chain
+    - Sequential processing of requests
+    - Example: Request validation, authentication, and authorization pipeline
+
+These patterns contribute to:
+- Clean separation of concerns
+- Enhanced testability
+- Improved scalability
+- Better maintainability
+- Flexible architecture
+
 ## Contributing 
 
 We welcome contributions! Please follow these steps:
