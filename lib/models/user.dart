@@ -1,5 +1,5 @@
 class User {
-  final int? id;  // جعل ال id اختياري
+  final int? id;  
   final String name;
   final String gender;
   final int age;
@@ -7,7 +7,7 @@ class User {
   final String mobileNumber;
 
   User({
-    this.id,  // جعل ال id اختياري في ال constructor
+    this.id,  
     required this.name,
     required this.gender,
     required this.age,

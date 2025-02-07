@@ -19,7 +19,6 @@ class UserService implements IUserService {
 
   @override
   Future<User> createUser(Map<String, dynamic> userData) async {
-    // نحذف ال ID من البيانات لأنه سيتم إنشاؤه تلقائياً
     final user = User(
       name: userData['name'] as String,
       gender: userData['gender'] as String,
@@ -37,7 +36,7 @@ class UserService implements IUserService {
     if (existingUser == null) return null;
 
     final user = User(
-      id: id,  // نحتفظ بنفس المعرف
+      id: id,  
       name: userData['name'] as String? ?? existingUser.name,
       gender: userData['gender'] as String? ?? existingUser.gender,
       age: userData['age'] as int? ?? existingUser.age,
