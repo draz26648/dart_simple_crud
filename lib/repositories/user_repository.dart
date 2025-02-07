@@ -1,7 +1,6 @@
 import 'package:postgres/postgres.dart';
 import '../models/user.dart';
 import '../core/interfaces/i_user_repository.dart';
-import '../services/database_service.dart';
 
 class UserRepository implements IUserRepository {
   final PostgreSQLConnection _connection;
