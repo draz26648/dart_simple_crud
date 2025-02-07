@@ -23,8 +23,8 @@ A robust REST API built with Dart and Shelf framework for user management, featu
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd hello_world
+git clone https://github.com/draz26648/dart_simple_crud.git
+cd root_folder
 ```
 
 2. Install dependencies:
