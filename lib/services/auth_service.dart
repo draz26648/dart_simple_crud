@@ -103,12 +103,15 @@ class AuthService implements IAuthService {
   }
 
   @override
-  Future<bool> verifyToken(String token) async {
+  Future<int> verifyToken(String token) async {
     try {
-      JWT.verify(token, SecretKey(_jwtSecret));
-      return _sessions.containsKey(token);
+      final jwt = JWT.verify(token, SecretKey(_jwtSecret));
+      if (!_sessions.containsKey(token)) {
+        throw Exception('Token not found in active sessions');
+      }
+      return jwt.payload['id'] as int;
     } catch (e) {
-      return false;
+      throw Exception('Invalid or expired token');
     }
   }
 

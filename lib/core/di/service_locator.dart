@@ -60,6 +60,8 @@ Future<void> setupDependencies() async {
       serviceLocator<UserController>(),
       serviceLocator<AuthController>(),
       serviceLocator<IAuthService>(),
+      serviceLocator<IUserService>(),
+      serviceLocator<IFileService>(),
     ),
   );
 }

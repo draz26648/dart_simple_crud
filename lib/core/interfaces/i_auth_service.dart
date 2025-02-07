@@ -9,6 +9,6 @@ abstract class IAuthService {
     String? mobileNumber,
     String? profileImagePath,
   });
-  Future<bool> verifyToken(String token);
+  Future<int> verifyToken(String token);
   Future<void> logout(String token);
 }
