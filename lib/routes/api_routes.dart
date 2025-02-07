@@ -6,9 +6,9 @@ import '../controllers/auth_controller.dart';
 import '../core/interfaces/i_auth_service.dart';
 import '../core/interfaces/i_user_service.dart';
 import '../core/interfaces/i_file_service.dart';
-import '../middlewares/auth_middleware.dart';
-import '../middlewares/user_middleware.dart';
-import '../middlewares/file_middleware.dart';
+import 'auth_routes.dart';
+import 'user_routes.dart';
+import 'file_routes.dart';
 import 'dart:convert';
 
 class ApiRoutes {
@@ -18,9 +18,9 @@ class ApiRoutes {
   final IUserService _userService;
   final IFileService _fileService;
 
-  late final AuthMiddleware _authMiddleware;
-  late final UserMiddleware _userMiddleware;
-  late final FileMiddleware _fileMiddleware;
+  late final AuthRoutes _authRoutes;
+  late final UserRoutes _userRoutes;
+  late final FileRoutes _fileRoutes;
 
   ApiRoutes(
     this._userController,
@@ -29,9 +29,9 @@ class ApiRoutes {
     this._userService,
     this._fileService,
   ) {
-    _authMiddleware = AuthMiddleware(_authService);
-    _userMiddleware = UserMiddleware(_userService);
-    _fileMiddleware = FileMiddleware(_fileService);
+    _authRoutes = AuthRoutes(_authController, _authService);
+    _userRoutes = UserRoutes(_userController, _userService);
+    _fileRoutes = FileRoutes(_userController, _fileService, _userService);
   }
 
   Handler get router {
@@ -58,45 +58,10 @@ class ApiRoutes {
     // Apply the pipeline to the router
     final handler = pipeline.addHandler(router.call);
 
-    // Auth routes - separate login and registration
-    final authRouter = Router();
-    
-    // Login route with login validation
-    authRouter.post('/login', Pipeline()
-      .addMiddleware(_authMiddleware.validateLoginData())
-      .addHandler(_authController.router.call));
-
-    // Registration route with registration validation
-    authRouter.post('/register', Pipeline()
-      .addMiddleware(_authMiddleware.validateRegistrationData())
-      .addHandler(_authController.router.call));
-
-    router.mount('/auth', authRouter);
-
-    // Protected user routes
-    router.mount('/users', Pipeline()
-      .addMiddleware(_userMiddleware.checkUserPermissions())
-      .addMiddleware((Handler innerHandler) {
-        return (Request request) async {
-          // Skip user existence check for GET /users (list all users)
-          if (request.method == 'GET' && request.url.pathSegments.length <= 1) {
-            return innerHandler(request);
-          }
-          
-          // Apply user existence check for other endpoints
-          return _userMiddleware.checkUserExists()(innerHandler)(request);
-        };
-      })
-      .addMiddleware(_userMiddleware.validateUserData())
-      .addHandler(_userController.router));
-
-    // File upload routes with enhanced security
-    router.mount('/uploads', Pipeline()
-      .addMiddleware(_userMiddleware.checkUserPermissions())
-      .addMiddleware(_fileMiddleware.validateFileUpload())
-      .addMiddleware(_fileMiddleware.validateFileType())
-      .addMiddleware(_fileMiddleware.sanitizeFileName())
-      .addHandler(_userController.router.call));
+    // Mount all routes
+    router.mount('/auth', _authRoutes.router);
+    router.mount('/users', _userRoutes.router);
+    router.mount('/uploads', _fileRoutes.router);
 
     // Serve static files (for profile images) with security headers
     final staticHandler = createStaticHandler(
