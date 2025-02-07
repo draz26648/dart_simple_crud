@@ -58,18 +58,37 @@ class ApiRoutes {
     // Apply the pipeline to the router
     final handler = pipeline.addHandler(router.call);
 
-    // Auth routes (no authentication required)
-    router.mount('/auth', Pipeline()
+    // Auth routes - separate login and registration
+    final authRouter = Router();
+    
+    // Login route with login validation
+    authRouter.post('/login', Pipeline()
       .addMiddleware(_authMiddleware.validateLoginData())
+      .addHandler(_authController.router.call));
+
+    // Registration route with registration validation
+    authRouter.post('/register', Pipeline()
       .addMiddleware(_authMiddleware.validateRegistrationData())
       .addHandler(_authController.router.call));
+
+    router.mount('/auth', authRouter);
 
     // Protected user routes
     router.mount('/users', Pipeline()
       .addMiddleware(_userMiddleware.checkUserPermissions())
+      .addMiddleware((Handler innerHandler) {
+        return (Request request) async {
+          // Skip user existence check for GET /users (list all users)
+          if (request.method == 'GET' && request.url.pathSegments.length <= 1) {
+            return innerHandler(request);
+          }
+          
+          // Apply user existence check for other endpoints
+          return _userMiddleware.checkUserExists()(innerHandler)(request);
+        };
+      })
       .addMiddleware(_userMiddleware.validateUserData())
-      .addMiddleware(_userMiddleware.checkUserExists())
-      .addHandler(_userController.router.call));
+      .addHandler(_userController.router));
 
     // File upload routes with enhanced security
     router.mount('/uploads', Pipeline()

@@ -50,70 +50,45 @@ class AuthController {
           );
         }
 
-        final body = await request.read().toList();
-        if (body.isEmpty) {
-          return Response(HttpStatus.badRequest,
-            body: json.encode({
-              'error': 'No data provided'
-            }),
-            headers: {'content-type': 'application/json'},
-          );
-        }
-
-        // Parse multipart form data
         final boundary = contentType.split('boundary=')[1];
-        final parts = body.expand((i) => i).toList();
-        final String rawData = String.fromCharCodes(parts);
+        final bytes = await request.read().expand((e) => e).toList();
+        final String rawData = String.fromCharCodes(bytes);
         final formDataParts = rawData.split('--$boundary');
 
-        Map<String, dynamic> formData = {};
+        Map<String, String> formData = {};
         List<int>? imageBytes;
         String? fileName;
 
         for (var part in formDataParts) {
+          if (part.trim().isEmpty) continue;
+          
           if (part.contains('Content-Disposition: form-data;')) {
-            if (part.contains('name="profile_image"') && part.contains('filename=')) {
-              // Extract filename
+            if (part.contains('name="profile_image"')) {
+              // Handle file upload
               final filenameMatch = RegExp(r'filename="([^"]+)"').firstMatch(part);
               if (filenameMatch != null) {
                 fileName = filenameMatch.group(1);
-                print('Found file upload with name: $fileName');
-                
-                // Find the start of the binary data (after the double CRLF)
                 final headerEnd = part.indexOf('\r\n\r\n');
                 if (headerEnd != -1) {
-                  // Convert the binary part to bytes, excluding the trailing boundary
                   final binaryData = part.substring(headerEnd + 4);
-                  // Remove the last \r\n if present
                   final cleanBinaryData = binaryData.endsWith('\r\n') 
                       ? binaryData.substring(0, binaryData.length - 2)
                       : binaryData;
-                      
-                  // Convert to bytes and validate
                   imageBytes = cleanBinaryData.codeUnits;
-                  if (imageBytes.isEmpty) {
-                    print('Warning: Image bytes is empty');
-                  } else {
-                    print('Successfully extracted image data:');
-                    print('- File name: $fileName');
-                    print('- Data length: ${imageBytes.length} bytes');
-                    print('- First few bytes: ${imageBytes.take(10).toList()}');
-                  }
-                } else {
-                  print('Error: Could not find start of binary data');
                 }
-              } else {
-                print('Error: Could not extract filename from header');
               }
             } else {
-              // This is a regular form field
-              final match = RegExp(r'name="([^"]+)"').firstMatch(part);
-              if (match != null) {
-                final name = match.group(1)!;
-                final valueStart = part.indexOf('\r\n\r\n') + 4;
-                final valueEnd = part.lastIndexOf('\r\n');
-                if (valueStart > 0 && valueEnd > valueStart) {
-                  formData[name] = part.substring(valueStart, valueEnd);
+              // Handle form fields
+              final nameMatch = RegExp(r'name="([^"]+)"').firstMatch(part);
+              if (nameMatch != null) {
+                final fieldName = nameMatch.group(1)!;
+                final headerEnd = part.indexOf('\r\n\r\n');
+                if (headerEnd != -1) {
+                  var fieldValue = part.substring(headerEnd + 4);
+                  if (fieldValue.endsWith('\r\n')) {
+                    fieldValue = fieldValue.substring(0, fieldValue.length - 2);
+                  }
+                  formData[fieldName] = fieldValue;
                 }
               }
             }
@@ -121,51 +96,56 @@ class AuthController {
         }
 
         // Validate required fields
-        if (!formData.containsKey('name') || 
-            !formData.containsKey('email') || 
-            !formData.containsKey('password')) {
-          return Response(HttpStatus.badRequest,
+        final requiredFields = ['name', 'email', 'password'];
+        final validationErrors = <String>[];
+
+        for (final field in requiredFields) {
+          if (!formData.containsKey(field) || formData[field]!.isEmpty) {
+            validationErrors.add('$field is required');
+          }
+        }
+
+        // Email validation
+        if (formData.containsKey('email') && !_isValidEmail(formData['email']!)) {
+          validationErrors.add('Invalid email format');
+        }
+
+        // Password strength validation
+        if (formData.containsKey('password') && !_isStrongPassword(formData['password']!)) {
+          validationErrors.add(
+            'Password must be at least 8 characters long and contain letters, numbers, and special characters'
+          );
+        }
+
+        // Age validation if provided
+        if (formData.containsKey('age') && formData['age']!.isNotEmpty) {
+          final age = int.tryParse(formData['age']!);
+          if (age == null || age < 0 || age > 120) {
+            validationErrors.add('Invalid age value');
+          }
+        }
+
+        if (validationErrors.isNotEmpty) {
+          return Response.badRequest(
             body: json.encode({
-              'error': 'Name, email and password are required'
+              'errors': validationErrors,
             }),
             headers: {'content-type': 'application/json'},
           );
         }
 
-        // Save image if provided
         String? profileImagePath;
-        if (imageBytes != null && fileName != null) {
-          try {
-            print('Attempting to save image: $fileName');
-            print('Image bytes length: ${imageBytes.length}');
-            profileImagePath = await _fileService.saveProfileImage(fileName, imageBytes);
-            if (profileImagePath == null) {
-              print('Failed to save image: profileImagePath is null');
-              return Response(HttpStatus.internalServerError,
-                body: json.encode({
-                  'error': 'Failed to save profile image. Please check server logs.'
-                }),
-                headers: {'content-type': 'application/json'},
-              );
-            }
-          } catch (e) {
-            print('Error saving image: $e');
-            return Response(HttpStatus.internalServerError,
-              body: json.encode({
-                'error': 'Failed to save profile image: ${e.toString()}'
-              }),
-              headers: {'content-type': 'application/json'},
-            );
-          }
+        if (fileName != null && imageBytes != null) {
+          profileImagePath = await _fileService.saveProfileImage(fileName, imageBytes);
         }
 
         final result = await _authService.register(
-          formData['name'],
-          formData['email'],
-          formData['password'],
+          formData['name']!,
+          formData['email']!,
+          formData['password']!,
           gender: formData['gender'],
-          age: formData['age'] != null ? int.parse(formData['age']) : null,
-          mobileNumber: formData['mobile_number'],
+          age: formData['age'] != null ? int.tryParse(formData['age']!) : null,
+          mobileNumber: formData['mobileNumber'],
           profileImagePath: profileImagePath,
         );
 
@@ -174,9 +154,10 @@ class AuthController {
           headers: {'content-type': 'application/json'},
         );
       } catch (e) {
-        return Response(HttpStatus.badRequest,
+        print('Registration error: ${e.toString()}');
+        return Response.internalServerError(
           body: json.encode({
-            'error': e.toString()
+            'error': 'Failed to process registration'
           }),
           headers: {'content-type': 'application/json'},
         );
@@ -215,5 +196,15 @@ class AuthController {
     });
 
     return router;
+  }
+
+  bool _isValidEmail(String email) {
+    final emailRegexp = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    return emailRegexp.hasMatch(email);
+  }
+
+  bool _isStrongPassword(String password) {
+    final passwordRegexp = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$');
+    return passwordRegexp.hasMatch(password);
   }
 }

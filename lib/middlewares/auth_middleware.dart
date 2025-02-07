@@ -17,6 +17,12 @@ class AuthMiddleware {
           return innerHandler(request);
         }
 
+        final contentType = request.headers['content-type'];
+        // Skip validation for non-JSON requests (like multipart/form-data)
+        if (contentType == null || !contentType.startsWith('application/json')) {
+          return innerHandler(request);
+        }
+
         try {
           final clientIp = _getClientIp(request);
           if (_isRateLimited(clientIp)) {
@@ -89,59 +95,18 @@ class AuthMiddleware {
           return innerHandler(request);
         }
 
-        try {
-          final payload = await request.readAsString();
-          final data = json.decode(payload);
-
-          // Required fields validation
-          final requiredFields = ['name', 'email', 'password'];
-          final validationErrors = <String>[];
-
-          for (final field in requiredFields) {
-            if (!data.containsKey(field) || data[field].toString().isEmpty) {
-              validationErrors.add('$field is required');
-            }
-          }
-
-          // Email validation
-          if (data.containsKey('email') && !isValidEmail(data['email'])) {
-            validationErrors.add('Invalid email format');
-          }
-
-          // Password strength validation
-          if (data.containsKey('password') && !isStrongPassword(data['password'])) {
-            validationErrors.add(
-              'Password must be at least 8 characters long and contain letters, numbers, and special characters',
-            );
-          }
-
-          // Age validation if provided
-          if (data.containsKey('age')) {
-            final age = int.tryParse(data['age'].toString());
-            if (age == null || age < 0 || age > 120) {
-              validationErrors.add('Invalid age value');
-            }
-          }
-
-          if (validationErrors.isNotEmpty) {
-            return Response.badRequest(
-              body: json.encode({
-                'errors': validationErrors,
-              }),
-              headers: {'content-type': 'application/json'},
-            );
-          }
-
-          return innerHandler(request);
-        } catch (e) {
-          print('Error in validateRegistrationData middleware: ${e.toString()}');
+        final contentType = request.headers['content-type'];
+        if (contentType == null || !contentType.startsWith('multipart/form-data')) {
           return Response.badRequest(
             body: json.encode({
-              'error': 'Invalid request data',
+              'error': 'Invalid content type. Must be multipart/form-data'
             }),
             headers: {'content-type': 'application/json'},
           );
         }
+
+        // Pass the request to the handler since we'll validate the form data there
+        return innerHandler(request);
       };
     };
   }
