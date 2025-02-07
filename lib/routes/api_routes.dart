@@ -103,25 +103,51 @@ class ApiRoutes {
       'uploads',
       defaultDocument: 'index.html',
       listDirectories: false,
+      serveFilesOutsidePath: false,
     );
 
     router.mount('/static', Pipeline()
       .addMiddleware((Handler innerHandler) {
         return (Request request) async {
+          // Allow GET requests only
+          if (request.method != 'GET') {
+            return Response.forbidden(
+              json.encode({'error': 'Method not allowed'}),
+              headers: {'content-type': 'application/json'},
+            );
+          }
+
           final response = await innerHandler(request);
           return response.change(headers: {
             ...response.headers,
+            'Content-Type': _getContentType(request.url.pathSegments.last),
             'X-Content-Type-Options': 'nosniff',
             'X-Frame-Options': 'DENY',
             'X-XSS-Protection': '1; mode=block',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0',
+            'Cache-Control': 'public, max-age=31536000',
+            'Access-Control-Allow-Origin': '*',
           });
         };
       })
       .addHandler(staticHandler));
 
     return handler;
+  }
+
+  String _getContentType(String fileName) {
+    final extension = fileName.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'webp':
+        return 'image/webp';
+      default:
+        return 'application/octet-stream';
+    }
   }
 }

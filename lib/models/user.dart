@@ -67,6 +67,12 @@ class User {
 
   // For API responses (excludes password)
   Map<String, dynamic> toResponseJson() {
+    String? profileImageUrl;
+    if (profileImagePath != null && profileImagePath!.isNotEmpty) {
+      // Convert the relative path to a full URL
+      profileImageUrl = '/static/$profileImagePath';
+    }
+
     return {
       'id': id,
       'name': name,
@@ -74,7 +80,7 @@ class User {
       'age': age,
       'email': email,
       'mobile_number': mobileNumber,
-      'profile_image_path': profileImagePath,
+      'profile_image_url': profileImageUrl,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };
