@@ -1,6 +1,8 @@
+import 'dart:io';
+
 class ServerConfig {
-  static const String host = 'localhost';
-  static const int port = 8080;
+  static String get host => Platform.environment['HOST'] ?? '0.0.0.0';
+  static int get port => int.parse(Platform.environment['PORT'] ?? '8080');
   
   // Add more configuration as needed
   static const Map<String, String> defaultHeaders = {
