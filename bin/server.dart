@@ -21,7 +21,6 @@ void main() async {
     print('DATABASE_URL: ${env['DATABASE_URL']?.replaceAll(RegExp(r':[^:@]+@'), ':***@')}');
     print('PORT: ${Platform.environment['PORT']}');
     print('PWD: ${Platform.environment['PWD']}');
-    print('Is Production: ${DatabaseConfig.isProduction}');
     
     print('\n=== Database Configuration ===');
     DatabaseConfig.printConfig();

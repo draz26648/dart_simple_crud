@@ -3,14 +3,6 @@ import 'package:simple_crud_app/config/database_config.dart';
 
 class CreateUsersTable {
   Future<void> up() async {
-    print('Starting database migration...');
-    print('Connection details:');
-    print('Host: ${DatabaseConfig.host}');
-    print('Port: ${DatabaseConfig.port}');
-    print('Database: ${DatabaseConfig.database}');
-    print('Username: ${DatabaseConfig.username}');
-    print('Is Production: ${DatabaseConfig.isProduction}');
-    
     PostgreSQLConnection? connection;
     try {
       print('Initializing database connection...');
