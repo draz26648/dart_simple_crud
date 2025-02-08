@@ -5,6 +5,11 @@ import 'package:simple_crud_app/core/di/service_locator.dart';
 import 'package:simple_crud_app/config/server_config.dart';
 import 'package:simple_crud_app/database/migrations/001_create_users_table.dart';
 import 'package:simple_crud_app/routes/api_routes.dart';
+import 'package:simple_crud_app/controllers/user_controller.dart';
+import 'package:simple_crud_app/controllers/auth_controller.dart';
+import 'package:simple_crud_app/core/interfaces/i_auth_service.dart';
+import 'package:simple_crud_app/core/interfaces/i_user_service.dart';
+import 'package:simple_crud_app/core/interfaces/i_file_service.dart';
 
 void main() async {
   try {
@@ -43,7 +48,13 @@ void main() async {
             }
           },
         )
-        .addHandler(ApiRoutes().handler);
+        .addHandler(ApiRoutes(
+          serviceLocator<UserController>(),
+          serviceLocator<AuthController>(),
+          serviceLocator<IAuthService>(),
+          serviceLocator<IUserService>(),
+          serviceLocator<IFileService>(),
+        ).router);
 
     // Start the server
     final port = int.parse(Platform.environment['PORT'] ?? '8080');
