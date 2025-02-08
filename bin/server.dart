@@ -10,9 +10,15 @@ import 'package:simple_crud_app/controllers/auth_controller.dart';
 import 'package:simple_crud_app/core/interfaces/i_auth_service.dart';
 import 'package:simple_crud_app/core/interfaces/i_user_service.dart';
 import 'package:simple_crud_app/core/interfaces/i_file_service.dart';
+import 'package:dotenv/dotenv.dart';
 
 void main() async {
   try {
+    print('Loading environment variables...');
+    var env = DotEnv(includePlatformEnvironment: true)..load();
+    print('Environment variables loaded successfully');
+    print('DATABASE_URL: ${env['DATABASE_URL']}');
+    
     print('Starting server initialization...');
     
     // Run migrations

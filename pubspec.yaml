@@ -8,12 +8,12 @@ environment:
 # Add regular dependencies here.
 dependencies:
   # server
-  shelf: ^1.4.0
-  shelf_router: ^1.1.0
+  shelf: ^1.4.1
+  shelf_router: ^1.1.4
   shelf_static: ^1.1.0
 
   # database
-  postgres: ^2.5.0
+  postgres: ^2.6.3
 
   # dependecy injection
   get_it: ^7.6.0
@@ -25,6 +25,9 @@ dependencies:
   mime: ^1.0.4
   path: ^1.8.0
   crypto: ^3.0.3
+
+  # environment variables
+  dotenv: ^4.2.0
 
 dev_dependencies:
   lints: ^2.0.0
