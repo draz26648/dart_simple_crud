@@ -3,22 +3,25 @@ import 'package:simple_crud_app/config/database_config.dart';
 
 class CreateUsersTable {
   Future<void> up() async {
-    print('Attempting to connect to database:');
+    print('Starting database migration...');
+    print('Connection details:');
     print('Host: ${DatabaseConfig.host}');
     print('Port: ${DatabaseConfig.port}');
     print('Database: ${DatabaseConfig.database}');
     print('Username: ${DatabaseConfig.username}');
-    print('Connection String: ${DatabaseConfig.connectionString}');
+    print('Is Production: ${DatabaseConfig.isProduction}');
     
-    final connection = PostgreSQLConnection(
-      DatabaseConfig.host,
-      DatabaseConfig.port,
-      DatabaseConfig.database,
-      username: DatabaseConfig.username,
-      password: DatabaseConfig.password
-    );
-
+    PostgreSQLConnection? connection;
     try {
+      print('Initializing database connection...');
+      connection = PostgreSQLConnection(
+        DatabaseConfig.host,
+        DatabaseConfig.port,
+        DatabaseConfig.database,
+        username: DatabaseConfig.username,
+        password: DatabaseConfig.password
+      );
+
       print('Opening connection...');
       await connection.open();
       print('Connection opened successfully!');
@@ -62,39 +65,51 @@ class CreateUsersTable {
       print('Existing trigger dropped successfully!');
 
       // Create trigger for updating updated_at column
-      print('Creating trigger for updating updated_at column...');
+      print('Creating new trigger...');
       await connection.query('''
         CREATE TRIGGER update_users_updated_at
         BEFORE UPDATE ON users
         FOR EACH ROW
         EXECUTE FUNCTION update_updated_at_column()
       ''');
-      print('Trigger for updating updated_at column created successfully!');
-    } catch (e) {
-      print('Error during migration: $e');
+      print('New trigger created successfully!');
+
+      print('Migration completed successfully!');
+    } catch (e, stackTrace) {
+      print('Error during migration:');
+      print('Error: $e');
+      print('Stack trace: $stackTrace');
+      print('Database URL format: ${DatabaseConfig.connectionString.replaceAll(RegExp(r':[^:@]+@'), ':***@')}');
       rethrow;
     } finally {
-      print('Closing connection...');
-      await connection.close();
-      print('Connection closed successfully!');
+      if (connection != null) {
+        print('Closing connection...');
+        await connection.close();
+        print('Connection closed successfully!');
+      }
     }
   }
 
   Future<void> down() async {
-    final connection = PostgreSQLConnection(
-      DatabaseConfig.host,
-      DatabaseConfig.port,
-      DatabaseConfig.database,
-      username: DatabaseConfig.username,
-      password: DatabaseConfig.password
-    );
-
-    await connection.open();
-
+    PostgreSQLConnection? connection;
     try {
+      connection = PostgreSQLConnection(
+        DatabaseConfig.host,
+        DatabaseConfig.port,
+        DatabaseConfig.database,
+        username: DatabaseConfig.username,
+        password: DatabaseConfig.password
+      );
+
+      await connection.open();
       await connection.query('DROP TABLE IF EXISTS users');
+    } catch (e) {
+      print('Error during down migration: $e');
+      rethrow;
     } finally {
-      await connection.close();
+      if (connection != null) {
+        await connection.close();
+      }
     }
   }
 }
