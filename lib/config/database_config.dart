@@ -1,38 +1,28 @@
 import 'dart:io';
 
 class DatabaseConfig {
-  // Check if running in production (Railway)
-  static bool get isProduction => 
-      Platform.environment['RAILWAY_ENVIRONMENT']?.isNotEmpty == true;
-
-  // Get database URL from environment or use local fallback
+  // Always try to use Railway's DATABASE_URL first
   static String get _databaseUrl {
-    // First try RAILWAY_DATABASE_URL
     final railwayUrl = Platform.environment['DATABASE_URL'];
-    
-    if (isProduction) {
-      if (railwayUrl == null || railwayUrl.isEmpty) {
-        throw StateError('''
-          No DATABASE_URL found in Railway environment.
-          Please make sure to:
-          1. Add a PostgreSQL service in Railway
-          2. Link it to your project
-          3. Verify DATABASE_URL is set in environment variables
-        ''');
-      }
+    if (railwayUrl != null && railwayUrl.isNotEmpty) {
+      print('Using Railway DATABASE_URL');
       return railwayUrl;
     }
     
-    // For local development
-    return Platform.environment['DATABASE_URL'] ?? 
-           'postgres://postgres:${Uri.encodeComponent("draz@123")}@localhost:5432/dart_test_backend?sslmode=disable';
+    print('Using local database configuration');
+    return 'postgres://postgres:${Uri.encodeComponent("draz@123")}@localhost:5432/dart_test_backend?sslmode=disable';
   }
 
+  static Uri? _cachedUri;
+  
   static Uri get _parsedUrl {
+    if (_cachedUri != null) return _cachedUri!;
+    
     try {
       final url = _databaseUrl;
-      print('Attempting to parse DATABASE_URL (masked): ${url.replaceAll(RegExp(r':[^:@]+@'), ':***@')}');
-      return Uri.parse(url);
+      print('Parsing DATABASE_URL (masked): ${url.replaceAll(RegExp(r':[^:@]+@'), ':***@')}');
+      _cachedUri = Uri.parse(url);
+      return _cachedUri!;
     } catch (e) {
       print('Error parsing DATABASE_URL: $e');
       rethrow;
@@ -59,22 +49,21 @@ class DatabaseConfig {
   // Full connection string
   static String get connectionString => _databaseUrl;
 
+  // Check if running in production environment
+  static bool get isProduction => Platform.environment['DATABASE_URL'] != null;
+
   // Print configuration for debugging
   static void printConfig() {
     print('\n=== Database Configuration ===');
-    print('Environment:');
-    print('  RAILWAY_ENVIRONMENT: ${Platform.environment['RAILWAY_ENVIRONMENT']}');
-    print('  Is Production: $isProduction');
+    print('Environment Variables:');
     print('  DATABASE_URL exists: ${Platform.environment['DATABASE_URL'] != null}');
+    print('  Using Railway: ${Platform.environment['DATABASE_URL'] != null}');
     
-    if (!isProduction) {
-      print('\nConfiguration:');
-      print('  Host: $host');
-      print('  Port: $port');
-      print('  Database: $database');
-      print('  Username: $username');
-    }
-    
-    print('\nConnection String (masked): ${_databaseUrl.replaceAll(RegExp(r':[^:@]+@'), ':***@')}');
+    print('\nConnection Details:');
+    print('  Host: $host');
+    print('  Port: $port');
+    print('  Database: $database');
+    print('  Username: $username');
+    print('  Connection String (masked): ${_databaseUrl.replaceAll(RegExp(r':[^:@]+@'), ':***@')}');
   }
 }
