@@ -41,14 +41,21 @@ class CreateUsersTable {
         \$\$ language 'plpgsql'
       ''');
 
+      // Drop existing trigger if exists
+      await connection.query('''
+        DROP TRIGGER IF EXISTS update_users_updated_at ON users
+      ''');
+
       // Create trigger for updating updated_at column
       await connection.query('''
-        DROP TRIGGER IF EXISTS update_users_updated_at ON users;
         CREATE TRIGGER update_users_updated_at
         BEFORE UPDATE ON users
         FOR EACH ROW
-        EXECUTE FUNCTION update_updated_at_column();
+        EXECUTE FUNCTION update_updated_at_column()
       ''');
+    } catch (e) {
+      print('Error during migration: $e');
+      rethrow;
     } finally {
       await connection.close();
     }
@@ -66,7 +73,7 @@ class CreateUsersTable {
     await connection.open();
 
     try {
-      await connection.query('DROP TABLE IF EXISTS users CASCADE');
+      await connection.query('DROP TABLE IF EXISTS users');
     } finally {
       await connection.close();
     }
