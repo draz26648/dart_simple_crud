@@ -4,11 +4,11 @@ class DatabaseConfig {
   static final bool isProduction = Platform.environment['RAILWAY_ENVIRONMENT'] != null;
   
   // Default local configuration
-  static const String _localHost = 'localhost';
-  static const int _localPort = 5432;
+  static const String _localHost = '127.0.0.1';  // Using IP instead of localhost
+  static const int _localPort = 5432;  // Default PostgreSQL port
   static const String _localDatabase = 'dart_test_backend';
   static const String _localUsername = 'postgres';
-  static const String _localPassword = 'draz@123';
+  static const String _localPassword = 'postgres';
 
   static Uri? get _databaseUrl {
     final url = Platform.environment['DATABASE_URL'];
