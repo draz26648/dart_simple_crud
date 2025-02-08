@@ -10,7 +10,7 @@ class DatabaseConfig {
     }
     
     print('Using local database configuration');
-    return 'postgres://postgres:${Uri.encodeComponent("draz@123")}@localhost:5432/dart_test_backend?sslmode=disable';
+    return 'postgresql://postgres:sHhaRgWvmvRGtIXQXmmHnXiiFmBuMfBQ@postgres.railway.internal:5432/railway';
   }
 
   static Uri? _cachedUri;
