@@ -15,28 +15,27 @@ import 'package:dotenv/dotenv.dart';
 
 void main() async {
   try {
-    print('Loading environment variables...');
-    var env = DotEnv(includePlatformEnvironment: true)..load();
-    print('Environment variables loaded successfully');
-    
-    print('\nEnvironment Variables:');
+    print('\n=== Environment Information ===');
     print('RAILWAY_ENVIRONMENT: ${Platform.environment['RAILWAY_ENVIRONMENT']}');
+    var env = DotEnv(includePlatformEnvironment: true)..load();
+    print('DATABASE_URL: ${env['DATABASE_URL']?.replaceAll(RegExp(r':[^:@]+@'), ':***@')}');
     print('PORT: ${Platform.environment['PORT']}');
+    print('PWD: ${Platform.environment['PWD']}');
+    print('Is Production: ${DatabaseConfig.isProduction}');
     
-    print('\nDatabase Configuration:');
+    print('\n=== Database Configuration ===');
     DatabaseConfig.printConfig();
     
-    print('DATABASE_URL: ${env['DATABASE_URL']}');
-    
+    print('\n=== Starting Server ===');
     print('Starting server initialization...');
     
     // Run migrations
-    print('Running database migrations...');
+    print('\n=== Running Migrations ===');
     await CreateUsersTable().up();
     print('Migrations completed successfully.');
     
     // Setup dependencies
-    print('Setting up dependencies...');
+    print('\n=== Setting up Dependencies ===');
     await setupDependencies();
     print('Dependencies setup completed.');
     

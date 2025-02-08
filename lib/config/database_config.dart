@@ -1,24 +1,34 @@
 import 'dart:io';
 
 class DatabaseConfig {
+  // Check if running in production (Railway)
   static bool get isProduction => 
-      Platform.environment['RAILWAY_ENVIRONMENT'] != null || 
-      Platform.environment['DATABASE_URL'] != null;
+      Platform.environment['RAILWAY_ENVIRONMENT']?.isNotEmpty == true ||
+      Platform.environment['DATABASE_URL']?.contains('railway.app') == true;
 
   // Get database URL from environment or use local fallback
   static String get _databaseUrl {
-    // Use Railway's DATABASE_URL if available
-    if (Platform.environment['DATABASE_URL'] != null) {
-      return Platform.environment['DATABASE_URL']!;
+    final railwayUrl = Platform.environment['DATABASE_URL'];
+    if (railwayUrl?.isNotEmpty == true) {
+      print('Using Railway DATABASE_URL');
+      return railwayUrl!;
     }
     
-    // For local development, encode special characters in password
+    print('Using local database configuration');
     const localPassword = 'draz@123';
     final encodedPassword = Uri.encodeComponent(localPassword);
     return 'postgres://postgres:$encodedPassword@localhost:5432/dart_test_backend?sslmode=disable';
   }
 
-  static Uri get _parsedUrl => Uri.parse(_databaseUrl);
+  static Uri get _parsedUrl {
+    try {
+      return Uri.parse(_databaseUrl);
+    } catch (e) {
+      print('Error parsing DATABASE_URL: $e');
+      print('DATABASE_URL (masked): ${_databaseUrl.replaceAll(RegExp(r':[^:@]+@'), ':***@')}');
+      rethrow;
+    }
+  }
 
   // Database configuration getters
   static String get host => _parsedUrl.host;
@@ -40,10 +50,14 @@ class DatabaseConfig {
   static void printConfig() {
     print('Database Configuration:');
     print('Is Production: $isProduction');
-    print('Host: $host');
-    print('Port: $port');
-    print('Database: $database');
-    print('Username: $username');
-    print('Connection String (masked): ${_databaseUrl.replaceAll(RegExp(r':[^:@]+@'), ':***@')}');
+    print('Environment Variables:');
+    print('  RAILWAY_ENVIRONMENT: ${Platform.environment['RAILWAY_ENVIRONMENT']}');
+    print('  DATABASE_URL exists: ${Platform.environment['DATABASE_URL'] != null}');
+    print('Configuration:');
+    print('  Host: $host');
+    print('  Port: $port');
+    print('  Database: $database');
+    print('  Username: $username');
+    print('  Connection String (masked): ${_databaseUrl.replaceAll(RegExp(r':[^:@]+@'), ':***@')}');
   }
 }
