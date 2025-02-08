@@ -10,29 +10,29 @@ class DatabaseConfig {
   static const String _localUsername = 'postgres';
   static const String _localPassword = 'draz@123';
 
+  static Uri? get _databaseUrl {
+    final url = Platform.environment['DATABASE_URL'];
+    return url != null ? Uri.parse(url) : null;
+  }
+
   // Get database configuration
-  static String get host => isProduction 
-      ? Uri.parse(Platform.environment['DATABASE_URL']!).host 
-      : _localHost;
+  static String get host => 
+      _databaseUrl?.host ?? _localHost;
       
-  static int get port => isProduction 
-      ? Uri.parse(Platform.environment['DATABASE_URL']!).port 
-      : _localPort;
+  static int get port => 
+      _databaseUrl?.port ?? _localPort;
       
-  static String get database => isProduction 
-      ? Uri.parse(Platform.environment['DATABASE_URL']!).path.replaceAll('/', '') 
-      : _localDatabase;
+  static String get database => 
+      _databaseUrl?.path.replaceAll('/', '') ?? _localDatabase;
       
-  static String get username => isProduction 
-      ? Uri.parse(Platform.environment['DATABASE_URL']!).userInfo.split(':')[0] 
-      : _localUsername;
+  static String get username => 
+      _databaseUrl?.userInfo.split(':')[0] ?? _localUsername;
       
-  static String get password => isProduction 
-      ? Uri.parse(Platform.environment['DATABASE_URL']!).userInfo.split(':')[1] 
-      : _localPassword;
+  static String get password => 
+      _databaseUrl?.userInfo.split(':')[1] ?? _localPassword;
 
   // Get full connection string
-  static String get connectionString => isProduction 
-      ? Platform.environment['DATABASE_URL']!
-      : 'postgres://$_localUsername:$_localPassword@$_localHost:$_localPort/$_localDatabase';
+  static String get connectionString => 
+      Platform.environment['DATABASE_URL'] ?? 
+      'postgres://$username:$password@$host:$port/$database';
 }
